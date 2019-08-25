@@ -18,6 +18,8 @@ Pacman agents (in searchAgents.py).
 """
 
 import util
+from util import *
+
 
 class SearchProblem:
     """
@@ -70,7 +72,8 @@ def tinyMazeSearch(problem):
     from game import Directions
     s = Directions.SOUTH
     w = Directions.WEST
-    return  [s, s, w, s, w, w, s, w]
+    return [s, s, w, s, w, w, s, w]
+
 
 def depthFirstSearch(problem):
     """
@@ -86,18 +89,87 @@ def depthFirstSearch(problem):
     print "Is the start a goal?", problem.isGoalState(problem.getStartState())
     print "Start's successors:", problem.getSuccessors(problem.getStartState())
     """
-    "*** YOUR CODE HERE ***"
+    # print ("Start:", problem.getStartState())
+    # print ("Is the start a goal?", problem.isGoalState(problem.getStartState()))
+    # print ("Start's successors:", problem.getSuccessors(problem.getStartState()))
+
+    visited = []
+    frontier = Stack()
+    pac_actions = []
+    visited.append(problem.getStartState())
+    frontier.push((problem.getStartState(), pac_actions))
+
+    while frontier.isEmpty() == 0:
+
+        state, state_actions = frontier.pop()
+
+        for next_state in problem.getSuccessors(state):
+
+            n_state, n_direction = (next_state[0], next_state[1])
+
+            if n_state not in visited:
+                if problem.isGoalState(n_state):
+                    return state_actions + [n_direction]
+
+                frontier.push((n_state, state_actions + [n_direction]))
+                visited.append(n_state)
+
     util.raiseNotDefined()
+
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
-    "*** YOUR CODE HERE ***"
+    visited = []
+    # Here we implement the data structure with a Queue
+    # in order to achieve the breadth first instead of the depth first search
+    frontier = Queue()
+    pac_actions = []
+    visited.append(problem.getStartState())
+    frontier.push((problem.getStartState(), pac_actions))
+
+    while frontier.isEmpty() == 0:
+
+        state, state_actions = frontier.pop()
+
+        for next_state in problem.getSuccessors(state):
+
+            n_state, n_direction = (next_state[0], next_state[1])
+
+            if n_state not in visited:
+                if problem.isGoalState(n_state):
+                    return state_actions + [n_direction]
+
+                frontier.push((n_state, state_actions + [n_direction]))
+                visited.append(n_state)
+
     util.raiseNotDefined()
+
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
-    "*** YOUR CODE HERE ***"
+    visited = []
+    frontier = PriorityQueue()
+    # adding the cost to the structure
+    frontier.push((problem.getStartState(), []), 0)
+    visited.append(problem.getStartState())
+
+    while frontier.isEmpty() == 0:
+
+        state, actions = frontier.pop()
+        if problem.isGoalState(state):
+            return actions
+
+        if state not in visited:
+            visited.append(state)
+
+        for next_state in problem.getSuccessors(state):
+            n_state, n_direction = (next_state[0], next_state[1])
+
+            if n_state not in visited:
+                frontier.update((n_state, actions + [n_direction]), problem.getCostOfActions(actions + [n_direction]))
+
     util.raiseNotDefined()
+
 
 def nullHeuristic(state, problem=None):
     """
@@ -105,6 +177,7 @@ def nullHeuristic(state, problem=None):
     goal in the provided SearchProblem.  This heuristic is trivial.
     """
     return 0
+
 
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""

@@ -21,6 +21,37 @@ import util
 from util import *
 
 
+class action():
+    def __init__(self, current, previous, direction, traversed: bool, cost=0):
+        self.current = current
+        self.previous = previous
+        self.direction = direction
+        self.traversed = traversed
+        self.cost = cost
+
+
+class action_list(list):
+
+    def __init__(self):
+        super().__init__()
+
+    def trace_sequence(self):
+        path = []
+        pathCur = nodes[-1]
+        """
+        Path tracing from the goal/end node to the starting node using previous
+        """
+        while pathCur:
+            print("pathCur = ", pathCur)
+            if not pathCur['Previous']:
+                break
+            path.insert(0, pathCur['Action'])
+            pathCur = next((item for item in nodes if item['Current'] == pathCur['Previous'] and item['Traveled']),
+                           None)
+
+        return path
+
+
 class SearchProblem:
     """
     This class outlines the structure of a search problem, but doesn't implement
@@ -78,97 +109,135 @@ def tinyMazeSearch(problem):
 def depthFirstSearch(problem):
     """
     Search the deepest nodes in the search tree first.
-
-    Your search algorithm needs to return a list of actions that reaches the
-    goal. Make sure to implement a graph search algorithm.
-
-    To get started, you might want to try some of these simple commands to
-    understand the search problem that is being passed in:
-
-    print "Start:", problem.getStartState()
-    print "Is the start a goal?", problem.isGoalState(problem.getStartState())
-    print "Start's successors:", problem.getSuccessors(problem.getStartState())
     """
-    # print ("Start:", problem.getStartState())
-    # print ("Is the start a goal?", problem.isGoalState(problem.getStartState()))
-    # print ("Start's successors:", problem.getSuccessors(problem.getStartState()))
 
-    visited = []
+    current_state = problem.getStartState()
+    previous_state = None
+
+    explored = []
+    explored.append(current_state)
+
+    nodes = []
+    nodes.append(action(current=current_state, previous=None, direction=None, traversed=False))
+
+    # Pacman_actions hold all the actions of the agent
+    pacman_actions = []
     frontier = Stack()
-    pac_actions = []
-    visited.append(problem.getStartState())
-    frontier.push((problem.getStartState(), pac_actions))
+    frontier.push((current_state, pacman_actions))
 
-    while frontier.isEmpty() == 0:
+    while not frontier.isEmpty():
 
-        state, state_actions = frontier.pop()
+        current_state, state_actions = frontier.pop()
 
-        for next_state in problem.getSuccessors(state):
+        explored.append(current_state)
+        # Get all the nodes that their state is tagged as current
+        currentNodes = [node for node in nodes if node.current == current_state]
 
-            n_state, n_direction = (next_state[0], next_state[1])
+        # Correct the non current states
+        if len(currentNodes) > 1:
+            for node in currentNodes:
+                if node.previous == previous_state:
+                    node.traversed = True
+        else:
+            currentNodes[0].traversed = True
 
-            if n_state not in visited:
-                if problem.isGoalState(n_state):
-                    return state_actions + [n_direction]
+        previous_state = current_state
+        pacman_actions = state_actions
 
+        if problem.isGoalState(current_state):
+            return pacman_actions
+
+        # Update the node and frontier states
+        for successor in problem.getSuccessors(current_state):
+            n_state, n_direction = (successor[0], successor[1])
+
+            if n_state not in explored:
+                nodes.append(action(current=n_state, previous=current_state, direction=n_direction, traversed=False))
                 frontier.push((n_state, state_actions + [n_direction]))
-                visited.append(n_state)
-
-    util.raiseNotDefined()
 
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
-    visited = []
-    # Here we implement the data structure with a Queue
-    # in order to achieve the breadth first instead of the depth first search
+
+    current_state = problem.getStartState()
+    explored = []
+
+    nodes = []
+    nodes.append(action(current=current_state, previous=None, direction=None, traversed=False))
+
+    pacman_actions = []
     frontier = Queue()
-    pac_actions = []
-    visited.append(problem.getStartState())
-    frontier.push((problem.getStartState(), pac_actions))
+    frontier.push((current_state, pacman_actions))
 
-    while frontier.isEmpty() == 0:
+    while not frontier.isEmpty():
+        current_state, state_actions = frontier.pop()
+        if current_state in explored:
+            continue
 
-        state, state_actions = frontier.pop()
+        explored.append((current_state))
 
-        for next_state in problem.getSuccessors(state):
+        # Find the current node
+        current_node = next((item for item in nodes if item.current == current_state), None)
+        current_node.traversed = True
 
-            n_state, n_direction = (next_state[0], next_state[1])
+        pacman_actions = state_actions
+        if problem.isGoalState(current_state):
+            return pacman_actions
 
-            if n_state not in visited:
-                if problem.isGoalState(n_state):
-                    return state_actions + [n_direction]
-
+        # Update the node and frontier states
+        for successor in problem.getSuccessors(current_state):
+            n_state, n_direction = (successor[0], successor[1])
+            if n_state not in explored:
+                nodes.append(action(current=n_state, previous=current_state, direction=n_direction, traversed=False))
                 frontier.push((n_state, state_actions + [n_direction]))
-                visited.append(n_state)
-
-    util.raiseNotDefined()
 
 
 def uniformCostSearch(problem):
-    """Search the node of least total cost first."""
-    visited = []
+    current_state = problem.getStartState()
+    explored = []
+
+    nodes = []
+    nodes.append(action(current=current_state, previous=None, direction=None, traversed=False, cost=0))
     frontier = PriorityQueue()
-    # adding the cost to the structure
-    frontier.push((problem.getStartState(), []), 0)
-    visited.append(problem.getStartState())
+    pacman_actions = []
+    frontier.push((current_state, pacman_actions), 0)
 
-    while frontier.isEmpty() == 0:
+    while not frontier.isEmpty():
+        current_state, state_actions = frontier.pop()
+        # Skip if already explored
+        if current_state in explored:
+            continue
 
-        state, actions = frontier.pop()
-        if problem.isGoalState(state):
-            return actions
+        explored.append((current_state))
+        # Update candidates for exploration
+        potentialNodes = []
+        for node in nodes:
+            if node.current == current_state:
+                potentialNodes.append(node)
+        # Select the candidate with the lowest score
+        if len(potentialNodes) > 1:
+            smallNode = potentialNodes[0]
+            for node in potentialNodes:
+                if smallNode.cost > node.cost:
+                    smallNode = node
+            current_node = smallNode
+        else:
+            current_node = potentialNodes[0]
 
-        if state not in visited:
-            visited.append(state)
+        current_node.traversed = True
 
-        for next_state in problem.getSuccessors(state):
-            n_state, n_direction = (next_state[0], next_state[1])
+        pacman_actions = state_actions
+        if problem.isGoalState(current_state):
+            return pacman_actions
 
-            if n_state not in visited:
-                frontier.update((n_state, actions + [n_direction]), problem.getCostOfActions(actions + [n_direction]))
-
-    util.raiseNotDefined()
+        # Update the node and frontier states
+        for successor in problem.getSuccessors(current_state):
+            n_state, n_direction, n_cost = (successor[0], successor[1], successor[2])
+            if n_state not in explored:
+                costSoFar = n_cost + current_node.cost
+                nodes.append(action(current=n_state, previous=current_state, direction=n_direction, traversed=False,
+                                    cost=costSoFar))
+                frontier.push((n_state, state_actions + [n_direction]), costSoFar)
 
 
 def nullHeuristic(state, problem=None):
@@ -176,13 +245,56 @@ def nullHeuristic(state, problem=None):
     A heuristic function estimates the cost from the current state to the nearest
     goal in the provided SearchProblem.  This heuristic is trivial.
     """
+
     return 0
 
 
 def aStarSearch(problem, heuristic=nullHeuristic):
-    """Search the node that has the lowest combined cost and heuristic first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    current_state = problem.getStartState()
+    explored = []
+
+    nodes = []
+    nodes.append(action(current=current_state, previous=None, direction=None, traversed=False, cost=0))
+    frontier = PriorityQueue()
+    pacman_actions = []
+    frontier.push((current_state, pacman_actions), 0)
+
+    while not frontier.isEmpty():
+        current_state, state_actions = frontier.pop()
+        # Skip if already explored
+        if current_state in explored:
+            continue
+
+        explored.append((current_state))
+        # Update candidates for exploration
+        potentialNodes = []
+        for node in nodes:
+            if node.current == current_state:
+                potentialNodes.append(node)
+        # Select the candidate with the lowest score
+        if len(potentialNodes) > 1:
+            smallNode = potentialNodes[0]
+            for node in potentialNodes:
+                if smallNode.cost > node.cost:
+                    smallNode = node
+            current_node = smallNode
+        else:
+            current_node = potentialNodes[0]
+
+        current_node.traversed = True
+
+        pacman_actions = state_actions
+        if problem.isGoalState(current_state):
+            return pacman_actions
+
+        # Update the node and frontier states
+        for successor in problem.getSuccessors(current_state):
+            n_state, n_direction, n_cost = (successor[0], successor[1], successor[2])
+            if n_state not in explored:
+                costSoFar = n_cost + current_node.cost
+                nodes.append(action(current=n_state, previous=current_state, direction=n_direction, traversed=False,
+                                    cost=costSoFar))
+                frontier.push((n_state, state_actions + [n_direction]), costSoFar + heuristic(n_state, problem))
 
 
 # Abbreviations

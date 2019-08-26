@@ -30,27 +30,6 @@ class action():
         self.cost = cost
 
 
-class action_list(list):
-
-    def __init__(self):
-        super().__init__()
-
-    def trace_sequence(self):
-        path = []
-        pathCur = nodes[-1]
-        """
-        Path tracing from the goal/end node to the starting node using previous
-        """
-        while pathCur:
-            print("pathCur = ", pathCur)
-            if not pathCur['Previous']:
-                break
-            path.insert(0, pathCur['Action'])
-            pathCur = next((item for item in nodes if item['Current'] == pathCur['Previous'] and item['Traveled']),
-                           None)
-
-        return path
-
 
 class SearchProblem:
     """
